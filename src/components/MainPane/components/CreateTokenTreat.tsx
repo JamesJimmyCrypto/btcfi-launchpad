@@ -7,15 +7,15 @@ import {
   useCallback,
 } from "react";
 
-import { Box, Button, Flex, HStack, Image, Input, Select, Text, VStack, useToken } from "@chakra-ui/react";
+import { Box, Button, Center, Flex, HStack, Image, Input, Select, Spinner, Text, VStack, useToken } from "@chakra-ui/react";
 import { getAttestations } from "@coinbase/onchainkit/identity";
 import { TokenSearch, TokenSelectDropdown, getTokens } from "@coinbase/onchainkit/token";
 import type { Token } from "@coinbase/onchainkit/token";
 import axios from "axios";
 import { ethers } from "ethers";
+import { debounce } from 'lodash';
 import { baseSepolia } from "viem/chains";
 import { useAccount, useChainId, useReadContract, useWriteContract } from "wagmi";
-import { debounce } from 'lodash';
 
 import { TOKEN_TREAT_CONTRACT_ADDRESS, TOKEN_TREAT_ABI, ERC20ABI } from "@/config";
 import { useSignMessageHook, useNotify } from "@/hooks";
@@ -49,6 +49,8 @@ const CreateTokenTreat: FC = () => {
   const [imagePromt, setImagePromt] = useState("");
 
   const [imagePromtUrl, setImagePromtUrl] = useState("");
+
+  const [fetchingImage, setFetchingImage] = useState(false);
 
   const [selectTokenList, setSelectTokenList] = useState([
     {
@@ -96,7 +98,6 @@ const CreateTokenTreat: FC = () => {
   };
 
   const checkAndSetAmounts = async () => {
-
     console.log("chainid", chainId, tokenTreatContractAddress)
 
     if (!treatValue || treatValue === "" || !treatToken || treatToken === "") return;
@@ -208,6 +209,7 @@ const CreateTokenTreat: FC = () => {
   const { notifyError, notifySuccess } = useNotify();
 
   const createImage = async (imagePromtPassed?: string) => {
+    setFetchingImage(true);
     const options = {
       method: "POST",
       url: "/api/corcel",
@@ -225,6 +227,7 @@ const CreateTokenTreat: FC = () => {
     console.log(response.data);
     setImagePromtUrl(response.data[0].image_url);
     console.log(imagePromtUrl);
+    setFetchingImage(false);
     return response.data;
   };
 
@@ -235,6 +238,10 @@ const CreateTokenTreat: FC = () => {
   //     createImage();
   //   }
   // }, [imagePromt]);
+
+  useEffect(() => {
+    setFetchingImage(true)
+  },[imagePromt])
 
   const handlePromtChange = (e: any) => {
     const { value } = e.target;
@@ -337,7 +344,17 @@ const CreateTokenTreat: FC = () => {
 
 {imagePromtUrl && (
         <Box boxSize="sm" className="ml-4">
-          <Image src={imagePromtUrl} alt="Selected Image" boxSize="100%" objectFit="cover" />
+           {fetchingImage? (<Center
+      top="0"
+      left="0"
+      width="100%"
+      height="100%"
+      bg="rgba(0, 0, 0, 0.5)"
+      // zIndex="1000"
+    >
+      <Spinner size="xl" />
+      <Text marginLeft={2}>Fetching Image using AI</Text>
+    </Center>): (<Image src={imagePromtUrl} alt="Selected Image" boxSize="100%" objectFit="cover" />)}
         </Box>
       )}
 <Flex direction="column" align="start" w="100%">
